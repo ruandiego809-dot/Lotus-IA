@@ -1,33 +1,33 @@
 # Lótus AI 🪷
 
-Aplicativo Android (Flutter/Dart): central de IA com múltiplos provedores, chat, projetos, agentes (sessões especializadas) e módulo de terminal em preparação.
+Android app (Flutter/Dart): AI hub with multiple providers, chat, projects, agents (specialized sessions) and terminal module in preparation.
 
-## Implementado
+## Implemented
 
-- **App/arquitetura:** Flutter modular (`app/`, `core/`, `features/`), tema escuro/claro, navegação por abas, identidade Lótus.
-- **Provedores (adaptadores separados):** API keys em `flutter_secure_storage`, endpoint configurável, teste de conexão, listagem de modelos, modelo/provedor padrão, limite de contexto manual.
-  - **Gemini:** SSE streaming, uso de tokens quando retornado.
-  - **OpenAI-compatible:** `/chat/completions` streaming e `/models` (OpenAI, Groq, OpenRouter, DeepSeek, Mistral, Z.ai/GLM, Kilo Gateway, OpenCode, OpenClaw, Hugging Face router configurável, endpoints custom).
-  - **Cohere:** adapter dedicado (v2 chat streaming).
-  - Erros HTTP/rede/429/cancelamento tratados e exibidos (sem expor segredos).
-- **Chat:** conversas persistentes, busca/exportação de histórico, prompt de sistema por conversa, streaming com interrupção, editar/reenviar, regenerar, retry, Markdown/cópia, auto-scroll.
-- **Anexos no chat:** arquivos de texto são incluídos na mensagem, com limite de 200 KB e truncamento acima de 12.000 caracteres. Seleção de imagens pela interface ainda não está implementada; adaptadores OpenAI-compatible e Gemini possuem tratamento de imagens, mas isso não habilita o envio pela interface.
-- **Métricas:** uso real exibido apenas quando a API retorna; estimativa local e %/restante com base em limite conhecido (API ou manual). Créditos/quotas não inventados.
-- **Projetos (local):** workspace no app (criar/renomear/editar/excluir, navegação, diff simples), importar/exportar ZIP e importar repositório público do GitHub via download ZIP (`main`/`master`).
-- **Agentes:** sessões de chat com prompts de sistema especializados (Programador, Designer, Analista, Testador, Arquiteto, Compilador) usando provedores/modelos reais.
-- **Release/CI:** assinatura via `android/key.properties` quando presente (fallback debug), `android/key.properties.example`, workflow CI (`.github/workflows/ci.yml`) com analyze/test/build.
+- **App/architecture:** Modular Flutter (`app/`, `core/`, `features/`), dark/light theme, tab navigation, Lótus identity.
+- **Providers (separate adapters):** API keys in `flutter_secure_storage`, configurable endpoint, connection test, model listing, default provider/model, manual context limit.
+  - **Gemini:** SSE streaming, token usage when returned.
+  - **OpenAI-compatible:** `/chat/completions` streaming and `/models` (OpenAI, Groq, OpenRouter, DeepSeek, Mistral, Z.ai/GLM, Kilo Gateway, OpenCode, OpenClaw, configurable Hugging Face router, custom endpoints).
+  - **Cohere:** dedicated adapter (v2 chat streaming).
+  - HTTP/network/429/cancellation errors handled and displayed (without exposing secrets).
+- **Chat:** persistent conversations, history search/export, system prompt per conversation, streaming with interruption, edit/resend, regenerate, retry, Markdown/copy, auto-scroll.
+- **Chat attachments:** text files included in the message, with 200 KB limit and truncation above 12,000 characters. Image selection via UI not yet implemented; OpenAI-compatible and Gemini adapters have image handling, but this does not enable sending via the interface.
+- **Metrics:** real usage displayed only when the API returns it; local estimate and %/remaining based on known limit (API or manual). Credits/quotas not invented.
+- **Projects (local):** in-app workspace (create/rename/edit/delete, navigation, simple diff), import/export ZIP, import public GitHub repo via ZIP download (`main`/`master`).
+- **Agents:** chat sessions with specialized system prompts (Programmer, Designer, Analyst, Tester, Architect, Compiler) using real providers/models.
+- **Release/CI:** signing via `android/key.properties` when present (debug fallback), `android/key.properties.example`, CI workflow (`.github/workflows/ci.yml`) with analyze/test/build.
 
-## Limitações conhecidas (dependem de integração nativa/plataforma externa)
+## Known limitations (depend on native integration/external platform)
 
-- **Terminal Linux real:** PRoot/PTY, Alpine/Ubuntu/Debian, imagens/sessões/pacotes/filesystem e ponte IA↔terminal com autorização por ação exigem componentes nativos/binários e validação em dispositivo (módulo expõe requisitos/estado, sem shell simulado).
-- **Agentes autônomos colaborativos:** orquestração multi-agente com execução real de ferramentas, acesso direto a projeto/terminal e ações auditáveis requer infraestrutura adicional de permissões/execução.
-- **Projetos avançados:** clone Git nativo com auth, execução de código e build Android in-app.
-- **Multimodal completo e métricas exatas:** dependem do que cada provedor/modelo expõe.
-- **Distribuição produção:** requer keystore de produção e AAB/Play Store; releases automatizadas neste repositório usam assinatura debug quando `key.properties` não é fornecido.
+- **Real Linux terminal:** PRoot/PTY, Alpine/Ubuntu/Debian images, sessions/packages/filesystem and IA↔terminal bridge with per-action authorization require native components/binaries and device validation (module exposes requirements/status, no simulated shell).
+- **Collaborative autonomous agents:** multi-agent orchestration with real tool execution, direct project/terminal access and auditable actions require additional permission/execution infrastructure.
+- **Advanced projects:** native Git clone with auth, in-app code execution and Android build.
+- **Full multimodal and exact metrics:** depend on what each provider/model exposes.
+- **Production distribution:** requires production keystore and AAB/Play Store; automated releases in this repo use debug signing when `key.properties` is not provided.
 
-## Compilação
+## Build
 
-Pré-requisitos: Flutter SDK, Android SDK (API 33+).
+Prerequisites: Flutter SDK, Android SDK (API 33+).
 
 ```bash
 flutter pub get
@@ -36,9 +36,9 @@ flutter test
 flutter build apk --release
 ```
 
-Assinatura: copie `android/key.properties.example` para `android/key.properties` e configure o keystore (não commitar).
+Signing: copy `android/key.properties.example` to `android/key.properties` and configure the keystore (do not commit).
 
-## Segurança
+## Security
 
-- API keys armazenadas com `flutter_secure_storage`, não registradas em logs e não exportadas.
-- Sem respostas de API simuladas; erros reportados conforme retorno real.
+- API keys stored with `flutter_secure_storage`, not logged and not exported.
+- No simulated API responses; errors reported as per real return.

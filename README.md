@@ -2,6 +2,17 @@
 
 Android app (Flutter/Dart): AI hub with multiple providers, chat, projects, agents (specialized sessions) and terminal module in preparation.
 
+## 🚀 Novidades na v0.6.1 (Micro Update)
+
+- **Code block com cópia de um clique** — blocos de código no Markdown ganharam botão de copiar
+- **Toast de "copiado" nas configurações** — feedback ao copiar API keys e endpoints
+- **Modo compacto** — toggle em Ajustes > Aparência para telas pequenas
+- **Responder rápido do histórico** — menu da conversa salva cola a última mensagem no compositor
+- **Mais sugestões no estado vazio** — comando de terminal e resumo de texto
+- **Novo ícone do app** — flor de lótus minimalista, gradiente violeta/teal
+
+---
+
 ## Implemented
 
 - **App/architecture:** Modular Flutter (`app/`, `core/`, `features/`), dark/light theme, tab navigation, Lótus identity.

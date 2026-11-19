@@ -4,45 +4,66 @@
     android:height="1024dp"
     android:viewportWidth="1024"
     android:viewportHeight="1024">
-  <!-- Background -->
+  <!-- Soft dark background -->
   <path
-      android:fillColor="#08090F"
+      android:fillColor="#0A0B12"
       android:pathData="M0,0h1024v1024H0z"/>
   
-  <!-- Lotus petals - minimalist gradient -->
-  <!-- Top petal -->
-  <group>
-    <path
-        android:fillColor="#6355F2"
-        android:pathData="M512,150C350,150 200,250 200,350C200,450 250,550 350,550C450,550 550,450 550,350C550,250 450,150 512,150Z"/>
-  </group>
-  
-  <!-- Bottom petal -->
-  <group>
-    <path
-        android:fillColor="#12B5A0"
-        android:pathData="M512,874C674,874 824,774 824,674C824,574 774,474 674,474C574,474 474,574 474,674C474,774 350,874 512,874Z"/>
-  </group>
-  
-  <!-- Left petal -->
-  <group>
-    <path
-        android:fillColor="#8C7DFF"
-        android:pathData="M150,512C150,350 250,200 350,200C450,200 550,250 550,350C550,450 450,550 350,550C250,550 150,450 150,512Z"/>
-  </group>
-  
-  <!-- Right petal -->
-  <group>
-    <path
-        android:fillColor="#35D0B8"
-        android:pathData="M874,512C874,674 774,824 674,824C574,824 474,774 474,674C474,574 574,474 674,474C774,474 874,674 874,512Z"/>
-  </group>
-  
-  <!-- Center circle (approximated with path) -->
-  <path
-      android:fillColor="#FFFFFF"
-      android:pathData="M512,432a80,80 0,1 0,160,0a80,80 0,1 0,-160,0"/>
+  <!-- Subtle glow behind lotus -->
   <path
       android:fillColor="#6355F2"
-      android:pathData="M512,472a40,40 0,1 0,80,0a40,40 0,1 0,-80,0"/>
+      android:pathData="M512,150
+        C350,150 200,250 200,350
+        C200,450 250,550 350,550
+        C450,550 550,450 550,350
+        C550,250 450,150 512,150Z"
+      android:alpha="0.15"/>
+  
+  <!-- Top lotus petal -->
+  <path
+      android:fillColor="#8C7DFF"
+      android:pathData="M512,180
+        C380,180 270,240 270,320
+        C270,400 330,480 420,480
+        C510,480 570,400 570,320
+        C570,240 460,180 512,180Z"/>
+  
+  <!-- Bottom lotus petal -->
+  <path
+      android:fillColor="#35D0B8"
+      android:pathData="M512,844
+        C640,844 750,780 750,700
+        C750,620 690,540 600,540
+        C510,540 450,620 450,700
+        C450,780 360,844 512,844Z"/>
+  
+  <!-- Left lotus petal -->
+  <path
+      android:fillColor="#6355F2"
+      android:pathData="M180,512
+        C180,380 240,270 320,270
+        C400,270 480,330 480,410
+        C480,490 420,570 340,570
+        C260,570 180,490 180,410Z"/>
+  
+  <!-- Right lotus petal -->
+  <path
+      android:fillColor="#12B5A0"
+      android:pathData="M844,512
+        C844,640 780,750 700,750
+        C620,750 540,690 540,610
+        C540,530 600,450 680,450
+        C760,450 844,530 844,610Z"/>
+  
+  <!-- Center stamen -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M512,452
+        a52,52 0,1 0,104,0
+        a52,52 0,1 0,-104,0"/>
+  <path
+      android:fillColor="#6355F2"
+      android:pathData="M512,472
+        a26,26 0,1 0,52,0
+        a26,26 0,1 0,-52,0"/>
 </vector>

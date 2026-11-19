@@ -242,6 +242,22 @@ class TerminalEnvironmentService {
     );
   }
 
+  /// Diagnósticos para ajudar o usuário a entender por que o terminal não inicia.
+  Future<Map<String, dynamic>> diagnose() async {
+    final proot = await findProotBinary();
+    final rootfsReady = await isRootfsReady('diag');
+    final base = await baseDir();
+    return {
+      'prootAvailable': proot != null,
+      'prootPath': proot,
+      'rootfsReady': rootfsReady,
+      'rootfsBase': base.path,
+      'baseExists': await base.exists(),
+      'platform': Platform.operatingSystem,
+      'version': Platform.version,
+    };
+  }
+
   Future<void> deleteSessionEnv(String sessionId) async {
     final dir = await rootfsDir(sessionId);
     if (await dir.exists()) await dir.delete(recursive: true);

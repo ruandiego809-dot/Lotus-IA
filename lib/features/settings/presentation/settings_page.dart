@@ -2,8 +2,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../app/theme.dart';
@@ -23,6 +25,96 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _busy = false;
+  bool _checkingUpdate = false;
+  String? _latestVersion;
+  String? _updateUrl;
+
+  static const _currentVersion = '0.6.1';
+  static const _githubRepo = 'ruandiego809-dot/LOTUS';
+
+  Future<void> _checkForUpdates() async {
+    setState(() => _checkingUpdate = true);
+    try {
+      final apiUrl = 'https://api.github.com/repos/$_githubRepo/releases/latest';
+      final response = await Dio().get(apiUrl);
+      final data = response.data as Map<String, dynamic>;
+      _latestVersion = data['tag_name'] as String?;
+      _updateUrl = data['html_url'] as String?;
+
+      if (_latestVersion != null && _latestVersion != _currentVersion) {
+        if (mounted) {
+          await _showUpdateDialog();
+        }
+      } else if (mounted) {
+        LotusFeedback.show(
+          context,
+          'You are on the latest version ($_currentVersion).',
+          tone: LotusSnackTone.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        LotusFeedback.show(
+          context,
+          'Could not check for updates.',
+          tone: LotusSnackTone.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checkingUpdate = false);
+    }
+  }
+
+  Future<void> _showUpdateDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New update available'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current version: $_currentVersion\nNew version: $_latestVersion',
+              style: ctx.text.bodyMedium,
+            ),
+            const SizedBox(height: LotusSpace.md),
+            const Text(
+              'What\'s new:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: LotusSpace.xs),
+            Text(
+              '• Code block with one-tap copy\n'
+              '• "Copied" toast in settings\n'
+              '• Compact mode\n'
+              '• Quick reply from history\n'
+              '• More empty state suggestions\n'
+              '• New app icon (minimalist lotus flower)\n'
+              '• Official API key website button in providers\n'
+              '• Update check button',
+              style: ctx.text.bodySmall,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              if (_updateUrl != null && await canLaunchUrl(Uri.parse(_updateUrl!))) {
+                await launchUrl(Uri.parse(_updateUrl!));
+              }
+            },
+            child: const Text('Download'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _editProvider(ProviderConfig config) async {
     String? storedKey;
@@ -32,7 +124,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (mounted) {
         LotusFeedback.show(
           context,
-          'Não foi possível ler a chave no armazenamento seguro.',
+          'Could not read key from secure storage.',
           tone: LotusSnackTone.error,
         );
       }
@@ -51,7 +143,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     try {
       final providers = ref.read(providerControllerProvider).value?.configs;
       if (providers == null) {
-        throw StateError('Configurações de provedores indisponíveis.');
+        throw StateError('Provider configurations unavailable.');
       }
       final data = {
         'version': 1,
@@ -60,7 +152,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           'themeMode': ThemeModeController.encode(ref.read(themeModeProvider)),
         },
         'providers': providers.map((p) => p.toJson()).toList(),
-        'note': 'Chaves do armazenamento seguro não são exportadas. Endpoints podem conter dados sensíveis.',
+        'note':
+            'API keys are not exported. Endpoints may contain sensitive data — verify before sharing.',
       };
       final dir = await getApplicationDocumentsDirectory();
       final exportDir = Directory('${dir.path}/lotus_ai');
@@ -73,15 +166,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (!mounted) return;
       await showLotusTextPreview(
         context,
-        title: 'Configurações exportadas',
-        caption: 'Chaves não incluídas. Endpoints podem conter dados sensíveis — verifique antes de compartilhar.',
+        title: 'Settings exported',
+        caption:
+            'Keys not included. Endpoints may contain sensitive data — verify before sharing.',
         text: file.path,
       );
     } catch (error) {
       if (mounted) {
         LotusFeedback.show(
           context,
-          'Falha ao exportar: $error',
+          'Export failed: $error',
           tone: LotusSnackTone.error,
         );
       }
@@ -98,16 +192,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (input == null || !mounted) return;
     try {
       final imported = ConfigImport.parse(jsonDecode(input));
-      await ref
-          .read(providerControllerProvider.notifier)
-          .save(imported.providers);
-      await ref
-          .read(themeModeProvider.notifier)
-          .setMode(ThemeModeController.parse(imported.themeMode));
+      await ref.read(providerControllerProvider.notifier).save(imported.providers);
+      await ref.read(themeModeProvider.notifier).setMode(ThemeModeController.parse(imported.themeMode));
       if (mounted) {
         LotusFeedback.show(
           context,
-          'Configurações importadas. As chaves locais foram mantidas.',
+          'Settings imported. Local keys were preserved.',
           tone: LotusSnackTone.success,
         );
       }
@@ -115,7 +205,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (mounted) {
         LotusFeedback.show(
           context,
-          'Importação inválida. Nenhuma alteração parcial foi confirmada.',
+          'Invalid import. No partial changes were confirmed.',
           tone: LotusSnackTone.error,
         );
       }
@@ -129,8 +219,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final compactMode = ref.watch(compactModeProvider);
     return LotusScaffold(
       appBar: const LotusAppBar(
-        title: 'Ajustes',
-        subtitle: 'Aparência, dados e provedores',
+        title: 'Settings',
+        subtitle: 'Appearance, data and providers',
       ),
       body: providers.when(
         loading: () => const Center(
@@ -144,7 +234,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: Padding(
             padding: const EdgeInsets.all(LotusSpace.xxl),
             child: Text(
-              'Não foi possível carregar os ajustes.\n$error',
+              'Could not load settings.\n$error',
               textAlign: TextAlign.center,
               style: context.text.bodySmall,
             ),
@@ -157,8 +247,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               const LinearProgressIndicator(minHeight: 2),
               const SizedBox(height: LotusSpace.md),
             ],
-            const LotusSectionHeader(title: 'Aparência'),
-            LotusAppearanceSelector(
+            const LotusSectionHeader(title: 'Appearance'),
+            LoyalAppearanceSelector(
               mode: themeMode,
               onChanged: (mode) =>
                   ref.read(themeModeProvider.notifier).setMode(mode),
@@ -166,9 +256,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: LotusSpace.md),
             ListTile(
               leading: const Icon(Icons.keyboard_rounded),
-              title: const Text('Modo compacto'),
+              title: const Text('Compact mode'),
               subtitle: const Text(
-                'Espaçamento mais apertado para telas pequenas',
+                'Tighter spacing for small screens',
               ),
               trailing: Switch(
                 value: compactMode,
@@ -178,91 +268,115 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: LotusSpace.xl),
             const LotusSectionHeader(
-              title: 'Dados',
-              subtitle: 'Portabilidade sem expor chaves de API.',
+              title: 'Updates',
+              subtitle: 'Check for new available versions.',
             ),
-            LotusCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const LotusIconBadge(
-                      icon: Icons.upload_file_outlined,
-                      size: 38,
-                    ),
-                    title: const Text('Exportar configurações'),
-                    subtitle: const Text('Gera um JSON sem chaves seguras'),
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: context.palette.muted,
-                    ),
-                    onTap: _export,
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const LotusIconBadge(
-                      icon: Icons.download_outlined,
-                      size: 38,
-                    ),
-                    title: const Text('Importar configurações'),
-                    subtitle: const Text('Cole o JSON exportado'),
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: context.palette.muted,
-                    ),
-                    onTap: _import,
-                  ),
-                ],
+            ListTile(
+              leading: const LotusIconBadge(
+                icon: Icons.update_rounded,
+                size: 38,
               ),
+              title: const Text('Check for updates'),
+              subtitle: Text(
+                'Current version: $_currentVersion',
+                style: context.text.labelSmall,
+              ),
+              trailing: _checkingUpdate
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      Icons.chevron_right_rounded,
+                      color: context.palette.muted,
+                    ),
+              onTap: _checkingUpdate ? null : _checkForUpdates,
             ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const LotusIconBadge(
+                icon: Icons.upload_file_outlined,
+                size: 38,
+              ),
+              title: const Text('Export settings'),
+              subtitle: const Text('Generates a JSON without secure keys'),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: context.palette.muted,
+              ),
+              onTap: _export,
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const LotusIconBadge(
+                icon: Icons.download_outlined,
+                size: 38,
+              ),
+              title: const Text('Import settings'),
+              subtitle: const Text('Paste the exported JSON'),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: context.palette.muted,
+              ),
+              onTap: _import,
+            ),
+            const Divider(height: 1),
             const SizedBox(height: LotusSpace.xl),
             LotusSectionHeader(
-              title: 'Provedores',
-              subtitle: 'Chaves, endpoints, modelos e limites de contexto. Cada provedor usa um adaptador próprio.',
+              title: 'Providers',
+              subtitle:
+                  'Keys, endpoints, models and context limits. Each provider uses its own adapter.',
               trailing: LotusPill(
-                '${state.configs.where((c) => c.enabled).length} ativos',
+                '${state.configs.where((c) => c.enabled).length} active',
                 tone: LotusPillTone.primary,
               ),
+        ),
+      ...[
+        for (final config in state.configs)
+          Padding(
+            padding: const EdgeInsets.only(bottom: LotusSpace.sm),
+            child: _ProviderTile(
+              config: config,
+              onTap: () => _editProvider(config),
             ),
-            for (final config in state.configs)
-              Padding(
-                padding: const EdgeInsets.only(bottom: LotusSpace.sm),
-                child: _ProviderTile(
-                  config: config,
-                  onTap: () => _editProvider(config),
-                ),
-              ),
+          ),
+      ],
             const SizedBox(height: LotusSpace.xl),
-            const LotusSectionHeader(title: 'Estado dos módulos'),
+            const LotusSectionHeader(title: 'Module status'),
             const LotusCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _StatusRow(
                     icon: Icons.chat_bubble_outline_rounded,
-                    title: 'Chat e provedores',
-                    description: 'Streaming, histórico com busca e exportação, edição/regeneração, prompt por conversa e limites manuais de contexto. Métricas reais só aparecem quando a API as retorna.',
+                    title: 'Chat and providers',
+                    description:
+                        'Streaming, history with search and export, edit/regenerate, prompt per conversation and manual context limits. Real metrics only appear when the API returns them.',
                     ok: true,
                   ),
                   Divider(height: LotusSpace.xl),
                   _StatusRow(
                     icon: Icons.folder_outlined,
-                    title: 'Projetos',
-                    description: 'Workspace local com criar, editar, renomear, excluir, diff e import/export ZIP. Clone Git autenticado e build in-app exigem integrações adicionais.',
+                    title: 'Projects',
+                    description:
+                        'Local workspace with create, edit, rename, delete, diff and import/export ZIP. Authenticated Git clone and in-app build require additional integrations.',
                     ok: true,
                   ),
                   Divider(height: LotusSpace.xl),
                   _StatusRow(
                     icon: Icons.terminal_outlined,
-                    title: 'Terminal Linux',
-                    description: 'Alpine real via PRoot/PTY, com download do rootfs e sessões. Depende de binários compatíveis no Android sem root; falhas são reportadas sem simulação.',
+                    title: 'Linux Terminal',
+                    description:
+                        'Real Alpine via PRoot/PTY, with rootfs download and sessions. Depends on compatible binaries on Android without root; failures are reported without simulation.',
                     ok: false,
                   ),
                   Divider(height: LotusSpace.xl),
                   _StatusRow(
                     icon: Icons.auto_awesome_outlined,
-                    title: 'Agentes e multimodal',
-                    description: 'Sessões especializadas já funcionam. Orquestração autônoma e envio de imagens por modelo dependem de suporte real do provedor.',
+                    title: 'Agents and multimodal',
+                    description:
+                        'Specialized sessions already work. Autonomous orchestration and image sending by model depend on real provider support.',
                     ok: false,
                   ),
                 ],
@@ -275,7 +389,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   const LotusBrandMark(size: 34),
                   const SizedBox(height: LotusSpace.sm),
                   Text(
-                    'Lótus AI 0.6.0',
+                    'Lótus AI 0.6.1',
                     style: context.text.labelSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -295,8 +409,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 }
 
 /// Light / dark / system switch with clear affordances.
-class LotusAppearanceSelector extends StatelessWidget {
-  const LotusAppearanceSelector({
+class LoyalAppearanceSelector extends StatelessWidget {
+  const LoyalAppearanceSelector({
     super.key,
     required this.mode,
     required this.onChanged,
@@ -314,9 +428,8 @@ class LotusAppearanceSelector extends StatelessWidget {
         style: SegmentedButton.styleFrom(
           side: BorderSide.none,
           backgroundColor: Colors.transparent,
-          selectedBackgroundColor: context.scheme.primary.withValues(
-            alpha: 0.12,
-          ),
+          selectedBackgroundColor:
+              context.scheme.primary.withValues(alpha: 0.12),
           selectedForegroundColor: context.scheme.primary,
           foregroundColor: context.palette.muted,
           padding: const EdgeInsets.symmetric(vertical: LotusSpace.md),
@@ -328,17 +441,17 @@ class LotusAppearanceSelector extends StatelessWidget {
           ButtonSegment(
             value: ThemeMode.light,
             icon: Icon(Icons.light_mode_outlined, size: 18),
-            label: Text('Claro'),
+            label: Text('Light'),
           ),
           ButtonSegment(
             value: ThemeMode.dark,
             icon: Icon(Icons.dark_mode_outlined, size: 18),
-            label: Text('Escuro'),
+            label: Text('Dark'),
           ),
           ButtonSegment(
             value: ThemeMode.system,
             icon: Icon(Icons.contrast_rounded, size: 18),
-            label: Text('Sistema'),
+            label: Text('System'),
           ),
         ],
         selected: {mode},
@@ -390,15 +503,14 @@ class _ProviderTile extends ConsumerWidget {
                           config.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: context.text.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: context.text.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ),
                       if (config.isDefault) ...[
                         const SizedBox(width: LotusSpace.sm),
                         const LotusPill(
-                          'Padrão',
+                          'Default',
                           tone: LotusPillTone.primary,
                           dense: true,
                         ),
@@ -408,8 +520,8 @@ class _ProviderTile extends ConsumerWidget {
                   const SizedBox(height: 3),
                   Text(
                     [
-                      config.enabled ? 'Ativo' : 'Inativo',
-                      hasKey ? 'Chave configurada' : 'Sem chave',
+                      config.enabled ? 'Active' : 'Inactive',
+                      hasKey ? 'Key configured' : 'No key',
                       if (config.selectedModel != null) config.selectedModel!,
                     ].join(' • '),
                     maxLines: 1,
@@ -460,13 +572,12 @@ class _StatusRow extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title,
-                      style: context.text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: context.text.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                   LotusPill(
-                    ok ? 'Ativo' : 'Parcial',
+                    ok ? 'Active' : 'Partial',
                     tone: ok ? LotusPillTone.success : LotusPillTone.neutral,
                     dense: true,
                   ),
@@ -504,7 +615,7 @@ class _ImportConfigDialogState extends State<_ImportConfigDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Importar configurações'),
+      title: const Text('Import settings'),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: TextField(
@@ -513,18 +624,18 @@ class _ImportConfigDialogState extends State<_ImportConfigDialog> {
           minLines: 6,
           style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
           decoration: const InputDecoration(
-            hintText: 'Cole aqui o JSON exportado',
+            hintText: 'Paste the exported JSON here',
           ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _controller.text),
-          child: const Text('Importar'),
+          child: const Text('Import'),
         ),
       ],
     );

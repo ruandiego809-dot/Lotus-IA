@@ -390,6 +390,10 @@ class TerminalController extends StateNotifier<TerminalState> {
     await _persist();
   }
 
+  Future<Map<String, dynamic>> diagnose() async {
+    return await _env.diagnose();
+  }
+
   @override
   void dispose() {
     for (final token in _cancelTokens.values) {

@@ -61,6 +61,23 @@ extension ProviderTypeMeta on ProviderType {
     ProviderType.customOpenAiCompatible => null,
     _ => null,
   };
+
+  /// URL oficial para obter/generar a API key do provedor.
+  String? get officialApiKeyUrl => switch (this) {
+    ProviderType.openai => 'https://platform.openai.com/api-keys',
+    ProviderType.groq => 'https://console.groq.com/keys',
+    ProviderType.openrouter => 'https://openrouter.ai/keys',
+    ProviderType.deepseek => 'https://platform.deepseek.com/api_keys',
+    ProviderType.mistral => 'https://console.mistral.ai/api-keys/',
+    ProviderType.huggingface => 'https://huggingface.co/settings/tokens',
+    ProviderType.cohere => 'https://dashboard.cohere.com/api-keys',
+    ProviderType.kiloGateway => 'https://kilo.ai/settings/api-keys',
+    ProviderType.opencode => 'https://opencode.ai/settings/api-keys',
+    ProviderType.openclaw => 'https://openclaw.ai/settings/api-keys',
+    ProviderType.customOpenAiCompatible => null,
+    ProviderType.gemini => 'https://aistudio.google.com/app/apikey',
+    _ => null,
+  };
 }
 
 class ProviderConfig {

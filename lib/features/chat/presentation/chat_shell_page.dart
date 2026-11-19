@@ -87,6 +87,14 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
             replyToId: replyTo?.id,
             attachments: attachments,
           );
+      // Auto-scroll para baixo assim que a mensagem é enviada
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scroll.hasClients) {
+            _scroll.jumpTo(_scroll.position.maxScrollExtent);
+          }
+        });
+      }
     } catch (error) {
       if (mounted) {
         if (_input.text.isEmpty) {

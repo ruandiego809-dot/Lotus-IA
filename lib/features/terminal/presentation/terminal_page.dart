@@ -104,6 +104,11 @@ class _TerminalPageState extends ConsumerState<TerminalPage> {
               size: 21,
             ),
           ),
+          IconButton(
+            tooltip: 'Diagnosticar terminal',
+            onPressed: () => _showDiagnose(context),
+            icon: const Icon(Icons.bug_report_rounded, size: 21),
+          ),
           const SizedBox(width: LotusSpace.sm),
         ],
       ),
@@ -326,6 +331,27 @@ class _TerminalPageState extends ConsumerState<TerminalPage> {
     if (allowed != null) {
       await ref.read(terminalAiConsentProvider.notifier).setConsent(allowed);
     }
+  }
+
+  Future<void> _showDiagnose(BuildContext context) async {
+    final diag = await ref.read(terminalControllerProvider.notifier).diagnose();
+    await showLotusTextPreview(
+      context,
+      title: 'Diagnóstico do Terminal',
+      caption: 'Use essas informações para reportar problemas ou configurar o PRoot.',
+      text: '''
+Prototipo do terminal - Diagnóstico:
+- PRoot disponível: ${diag['prootAvailable'] ?? false}
+- Caminho PRoot: ${diag['prootPath'] ?? 'Não encontrado'}
+- Diretório base: ${diag['rootfsBase']}
+- Base existe: ${diag['baseExists'] ?? false}
+- Plataforma: ${diag['platform']}
+- Versão: ${diag['version']}
+
+Se PRoot não estiver disponível, o terminal Alpine não funcionará neste dispositivo.
+Instale PRoot via Termux ou use um dispositivo com suporte a PTY/PRoot nativo.
+''',
+    );
   }
 }
 

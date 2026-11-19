@@ -1,6 +1,7 @@
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/models/provider_models.dart';
 import '../../../../design/design.dart';
@@ -195,7 +196,33 @@ class _ProviderEditorSheetState extends ConsumerState<ProviderEditorSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(type.label, style: context.text.titleMedium),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              type.label,
+                              style: context.text.titleMedium,
+                            ),
+                          ),
+                          if (type.officialApiKeyUrl != null)
+                            IconButton(
+                              icon: const Icon(Icons.open_in_new, size: 19),
+                              tooltip: 'Obter API key',
+                              onPressed: () async {
+                                final url = type.officialApiKeyUrl!;
+                                if (await canLaunchUrl(Uri.parse(url))) {
+                                  await launchUrl(Uri.parse(url));
+                                } else {
+                                  LotusFeedback.show(
+                                    context,
+                                    'Não foi possível abrir o link.',
+                                    tone: LotusSnackTone.error,
+                                  );
+                                }
+                              },
+                            ),
+                        ],
+                      ),
                       Text(
                         type.defaultEndpoint ?? 'Endpoint personalizado',
                         maxLines: 1,

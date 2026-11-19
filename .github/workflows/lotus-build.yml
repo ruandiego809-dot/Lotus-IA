@@ -1,0 +1,82 @@
+name: Preparar melhorias e gerar APK
+on:
+  push:
+    branches: [melhorias-chat-projetos-20261115]
+    paths: ['.github/workflows/lotus-build.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restaurar arquivos e confirmar integridade
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, io, pathlib, zipfile
+          raw = base64.b64decode(''.join(pathlib.Path(f'.ci-upload/chunk-{i:02}.txt').read_text() for i in range(5)), validate=True)
+          assert hashlib.sha256(raw).hexdigest() == 'efa8a56e6af445d19cc4a78768b69469ff5a74dfe0d2716168c47a30306208f7'
+          expected = {'lib/features/chat/presentation/chat_shell_page.dart', 'lib/features/projects/presentation/projects_page.dart', 'lib/features/settings/presentation/settings_page.dart', 'test/chat_regression_test.dart'}
+          with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+              assert set(archive.namelist()) == expected
+              for name in expected:
+                  pathlib.Path(name).parent.mkdir(parents=True, exist_ok=True)
+                  pathlib.Path(name).write_bytes(archive.read(name))
+          PY
+      - name: Registrar arquivos no repositório
+        id: source
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/chat/presentation/chat_shell_page.dart lib/features/projects/presentation/projects_page.dart lib/features/settings/presentation/settings_page.dart test/chat_regression_test.dart
+          git rm .ci-upload/chunk-*.txt
+          git commit -m 'Restore updated source files'
+          git push origin HEAD:melhorias-chat-projetos-20261115
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+  analyze_test:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+  build_android:
+    needs: [prepare, analyze_test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+      - run: flutter pub get
+      - name: Restaurar Gradle wrapper verificado
+        run: |
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/gradle/gradle/v9.5.0/gradle/wrapper/gradle-wrapper.jar --output android/gradle/wrapper/gradle-wrapper.jar
+          echo '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum -c -
+          chmod +x android/gradlew
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lotus-apk-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error

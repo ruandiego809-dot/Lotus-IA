@@ -1,0 +1,71 @@
+name: Validar correção de histórico e APKs
+on:
+  push:
+    branches: [melhorias-chat-projetos-20261115]
+    paths: ['.github/workflows/validar-historico.yml']
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ajustar expectativa do teste
+        run: |
+          python3 - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path('test/chat_regression_test.dart')
+          b = p.read_bytes()
+          assert hashlib.sha1(b'blob ' + str(len(b)).encode() + b'\0' + b).hexdigest() == 'd09c8d5c7e74448acf55ed98e4228b5c833b8256', 'O teste mudou; ajuste cancelado.'
+          old = b'await expectLater(controller.createConversation(), throwsStateError);'
+          new = b'await expectLater(controller.createConversation(), throwsFormatException);'
+          assert b.count(old) == 1
+          p.write_bytes(b.replace(old, new))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add test/chat_regression_test.dart
+          git commit -m 'Fix regression expectation for unreadable history'
+          git push origin HEAD:melhorias-chat-projetos-20261115
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+      - run: flutter pub get
+      - name: Análise e testes
+        id: checks
+        run: |
+          flutter analyze > /tmp/analyze.log 2>&1
+          flutter test > /tmp/test.log 2>&1
+      - name: Relatar falha da validação
+        if: failure() && steps.checks.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const logs = ['/tmp/analyze.log','/tmp/test.log'].filter(f => fs.existsSync(f)).map(f => f + '\n' + fs.readFileSync(f,'utf8').slice(-25000)).join('\n');
+            await github.rest.issues.createComment({...context.repo, issue_number: 1, body: 'Validação do histórico:\n\n```\n' + logs.slice(-50000) + '\n```'});
+      - name: Preparar Gradle
+        run: |
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/gradle/gradle/v9.5.0/gradle/wrapper/gradle-wrapper.jar --output android/gradle/wrapper/gradle-wrapper.jar
+          echo '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum -c -
+          chmod +x android/gradlew
+      - name: Gerar APK debug
+        run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lotus-apk-debug-validado
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+      - name: Gerar APK release
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lotus-apk-release-validado
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

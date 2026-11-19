@@ -1,0 +1,74 @@
+name: Corrigir análise e gerar APK
+on:
+  push:
+    branches: [melhorias-chat-projetos-20261115]
+    paths: ['.github/workflows/correcao.yml']
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corrigir uso do seletor de arquivos
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/features/chat/presentation/chat_shell_page.dart')
+          s = p.read_text()
+          assert s.count('FilePicker.platform.pickFiles(') == 1
+          assert s.count('final picked = result?.files.single;') == 1
+          s = s.replace('FilePicker.platform.pickFiles(', 'FilePicker.pickFile(')
+          s = s.replace('final picked = result?.files.single;', 'final picked = result;')
+          p.write_text(s)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/chat/presentation/chat_shell_page.dart
+          git commit -m 'Fix file picker 13 API'
+          git push origin HEAD:melhorias-chat-projetos-20261115
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+      - run: flutter pub get
+      - name: Analisar e testar
+        id: checks
+        run: |
+          flutter analyze > /tmp/lotus-analyze.log 2>&1
+          flutter test > /tmp/lotus-test.log 2>&1
+      - name: Publicar diagnóstico de validação
+        if: failure() && steps.checks.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const files = ['/tmp/lotus-analyze.log','/tmp/lotus-test.log'];
+            const logs = files.filter(f => fs.existsSync(f)).map(f => f.split('/').pop() + '\n' + fs.readFileSync(f,'utf8').slice(-35000)).join('\n');
+            await github.rest.issues.createComment({ ...context.repo, issue_number: 1, body: 'Diagnóstico de análise/testes:\n\n```\n' + logs.slice(-50000) + '\n```' });
+      - name: Preparar Gradle
+        run: |
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/gradle/gradle/v9.5.0/gradle/wrapper/gradle-wrapper.jar --output android/gradle/wrapper/gradle-wrapper.jar
+          echo '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum -c -
+          chmod +x android/gradlew
+      - name: Gerar APK debug
+        id: build
+        run: flutter build apk --debug > /tmp/lotus-build.log 2>&1
+      - name: Publicar diagnóstico do build
+        if: failure() && steps.build.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('/tmp/lotus-build.log','utf8').slice(-40000);
+            await github.rest.issues.createComment({...context.repo, issue_number: 1, body: 'Diagnóstico do build Android:\n\n```\n' + log + '\n```'});
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lotus-apk-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error

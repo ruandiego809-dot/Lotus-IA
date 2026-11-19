@@ -1,0 +1,29 @@
+name: Diagnóstico do build
+on:
+  push:
+    branches: [melhorias-chat-projetos-20261115]
+    paths: ['.github/workflows/diagnostico.yml']
+permissions:
+  actions: read
+  pull-requests: write
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const run_id = 43729270713;
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({owner, repo, run_id});
+            const job = jobs.data.jobs.find(j => j.name === 'analyze_test');
+            if (!job) throw Error('Job não encontrado');
+            const failed = job.steps.filter(s => s.conclusion === 'failure').map(s => s.name).join(', ');
+            const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/jobs/${job.id}/logs`, {headers: {Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}});
+            if (!res.ok) throw Error(`Falha ao ler logs: ${res.status}`);
+            const text = await res.text();
+            const lines = text.split('\n').filter(l => /(^|\s)(error|Error|failed|Failed|Because |version solving|[0-9]+ issues? found)/i.test(l)).slice(-35);
+            const body = 'Diagnóstico de CI: etapa com falha: ' + failed + '\n\n```\n' + (lines.join('\n').slice(-14000) || 'Sem linhas de erro correspondentes.') + '\n```';
+            await github.rest.issues.createComment({owner, repo, issue_number: 1, body});

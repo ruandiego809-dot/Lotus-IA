@@ -1,0 +1,3 @@
+# Copy to local.properties and set paths for local builds
+# sdk.dir=/path/to/android/sdk
+# flutter.sdk=/path/to/flutter

@@ -1,0 +1,83 @@
+name: Aplicar correções e validar APK
+on:
+  push:
+    branches: [melhorias-chat-projetos-20261115]
+    paths: ['.github/workflows/validar-correcao.yml']
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar correções verificadas
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, io, pathlib, zipfile
+          expected = {
+              'lib/features/chat/presentation/chat_shell_page.dart': 'b07ed51a8f4539b3824c8adede191642f1c674cf',
+              'lib/features/terminal/data/terminal_environment_service.dart': '94235e540456b27ab46bddfe81ad156e99f651aa',
+              'lib/features/terminal/domain/terminal_session_controller.dart': '10a64317553b3eebdf172e8d1b3f3da1d887af37',
+              'test/chat_regression_test.dart': 'ee11636b1a9108dce7ca749e71526c44e94310bf',
+          }
+          for name, sha in expected.items():
+              data = pathlib.Path(name).read_bytes()
+              assert hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest() == sha, f'Arquivo mudou: {name}'
+          raw = base64.b64decode(''.join(pathlib.Path(f'.ci-fix/chunk-{i:02}.txt').read_text() for i in range(6)), validate=True)
+          assert hashlib.sha256(raw).hexdigest() == '1fa4fea8e6f843adc2a98e01259d927d4ef53cfca7d96a10ae96c351c9fa2233'
+          with zipfile.ZipFile(io.BytesIO(raw)) as z:
+              assert set(z.namelist()) == set(expected)
+              for name in expected:
+                  pathlib.Path(name).write_bytes(z.read(name))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/chat/presentation/chat_shell_page.dart lib/features/terminal/data/terminal_environment_service.dart lib/features/terminal/domain/terminal_session_controller.dart test/chat_regression_test.dart
+          git rm .ci-fix/chunk-*.txt
+          git commit -m 'Resolve Flutter analyzer findings'
+          git push origin HEAD:melhorias-chat-projetos-20261115
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+      - run: flutter pub get
+      - name: Análise e testes
+        id: checks
+        run: |
+          flutter analyze > /tmp/lotus-analyze.log 2>&1
+          flutter test > /tmp/lotus-test.log 2>&1
+      - name: Diagnóstico de análise e testes
+        if: failure() && steps.checks.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const files = ['/tmp/lotus-analyze.log','/tmp/lotus-test.log'];
+            const logs = files.filter(f => fs.existsSync(f)).map(f => f.split('/').pop() + '\n' + fs.readFileSync(f,'utf8').slice(-35000)).join('\n');
+            await github.rest.issues.createComment({...context.repo, issue_number: 1, body: 'Diagnóstico da validação corrigida:\n\n```\n' + logs.slice(-50000) + '\n```'});
+      - name: Preparar Gradle
+        run: |
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/gradle/gradle/v9.5.0/gradle/wrapper/gradle-wrapper.jar --output android/gradle/wrapper/gradle-wrapper.jar
+          echo '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum -c -
+          chmod +x android/gradlew
+      - name: Gerar APK debug
+        id: build
+        run: flutter build apk --debug > /tmp/lotus-build.log 2>&1
+      - name: Diagnóstico do build
+        if: failure() && steps.build.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('/tmp/lotus-build.log','utf8').slice(-40000);
+            await github.rest.issues.createComment({...context.repo, issue_number: 1, body: 'Diagnóstico do build corrigido:\n\n```\n' + log + '\n```'});
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lotus-apk-debug-corrigido
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error

@@ -210,15 +210,19 @@ class _ProviderEditorSheetState extends ConsumerState<ProviderEditorSheet> {
                               tooltip: 'Obter API key',
                               onPressed: () async {
                                 final url = type.officialApiKeyUrl!;
-                                if (await canLaunchUrl(Uri.parse(url))) {
-                                  await launchUrl(Uri.parse(url));
-                                } else {
+                                final canOpen = await canLaunchUrl(
+                                  Uri.parse(url),
+                                );
+                                if (!canOpen) {
+                                  if (!context.mounted) return;
                                   LotusFeedback.show(
                                     context,
                                     'Não foi possível abrir o link.',
                                     tone: LotusSnackTone.error,
                                   );
+                                  return;
                                 }
+                                await launchUrl(Uri.parse(url));
                               },
                             ),
                         ],

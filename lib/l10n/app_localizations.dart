@@ -94,6 +94,44 @@ class AppLocalizations {
   String get exportConversation => _resolve('exportConversation');
   String get importConversation => _resolve('importConversation');
 
+  // ---- Anexos ----
+  String get attachTitle => _resolve('attachTitle');
+  String get attachTextFile => _resolve('attachTextFile');
+  String get attachTextFileSub => _resolve('attachTextFileSub');
+  String get attachImage => _resolve('attachImage');
+  String get attachImageSub => _resolve('attachImageSub');
+  String get attachZip => _resolve('attachZip');
+  String get attachZipSub => _resolve('attachZipSub');
+  String get zipTooLarge => _resolve('zipTooLarge');
+  String get zipEmpty => _resolve('zipEmpty');
+
+  String zipAdded(int files, int chars) => _resolve('zipAdded')
+      .replaceAll('{files}', '$files')
+      .replaceAll('{chars}', '$chars');
+
+  String zipFailed(String error) =>
+      _resolve('zipFailed').replaceAll('{error}', error);
+
+  // ---- Chat em grupo ----
+  String get groupChat => _resolve('groupChat');
+  String get groupChatSubtitle => _resolve('groupChatSubtitle');
+  String get groupSelectModels => _resolve('groupSelectModels');
+  String get groupResponses => _resolve('groupResponses');
+  String get groupEmptyMsg => _resolve('groupEmptyMsg');
+  String get groupNoProviders => _resolve('groupNoProviders');
+  String get groupCopy => _resolve('groupCopy');
+  String get groupCopied => _resolve('groupCopied');
+  String get groupStopped => _resolve('groupStopped');
+  String get groupNoModel => _resolve('groupNoModel');
+  String get groupError => _resolve('groupError');
+  String get groupHint => _resolve('groupHint');
+  String get groupSelectFirst => _resolve('groupSelectFirst');
+  String get groupClear => _resolve('groupClear');
+  String get groupThinking => _resolve('groupThinking');
+
+  String groupSelectedCount(int count) =>
+      _resolve('groupSelectedCount').replaceAll('{count}', '$count');
+
   // ---- Ajustes ----
   String get settingsTitle => _resolve('settingsTitle');
   String get settingsSubtitle => _resolve('settingsSubtitle');

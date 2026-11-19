@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/agents/presentation/agents_page.dart';
 import '../features/chat/presentation/chat_shell_page.dart';
+import '../features/chat/presentation/group_chat_page.dart';
 import '../features/projects/presentation/projects_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/terminal/presentation/terminal_page.dart';
@@ -19,6 +20,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(path: '/chat', builder: (_, __) => const ChatShellPage()),
+              GoRoute(
+                path: '/group-chat',
+                builder: (_, __) => const GroupChatPage(),
+              ),
             ],
           ),
           StatefulShellBranch(

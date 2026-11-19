@@ -1,7 +1,7 @@
 name: lotus_ai
 description: Lótus AI - central de inteligência artificial com múltiplos provedores.
 publish_to: "none"
-version: 0.6.0+7
+version: 0.6.3+10
 
 environment:
   sdk: ">=3.13.0 <4.0.0"

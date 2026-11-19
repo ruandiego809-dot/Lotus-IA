@@ -29,13 +29,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String? _latestVersion;
   String? _updateUrl;
 
-  static const _currentVersion = '0.6.1';
+  static const _currentVersion = '0.6.3';
   static const _githubRepo = 'ruandiego809-dot/LOTUS';
 
   Future<void> _checkForUpdates() async {
     setState(() => _checkingUpdate = true);
     try {
-      final apiUrl = 'https://api.github.com/repos/$_githubRepo/releases/latest';
+      const apiUrl = 'https://api.github.com/repos/$_githubRepo/releases/latest';
       final response = await Dio().get(apiUrl);
       final data = response.data as Map<String, dynamic>;
       _latestVersion = data['tag_name'] as String?;

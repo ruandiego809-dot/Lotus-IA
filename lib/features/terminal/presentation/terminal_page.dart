@@ -335,6 +335,7 @@ class _TerminalPageState extends ConsumerState<TerminalPage> {
 
   Future<void> _showDiagnose(BuildContext context) async {
     final diag = await ref.read(terminalControllerProvider.notifier).diagnose();
+    if (!context.mounted) return;
     await showLotusTextPreview(
       context,
       title: 'Diagnóstico do Terminal',

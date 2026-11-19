@@ -320,10 +320,10 @@ class _HistoryRow extends ConsumerWidget {
                     PopupMenuItem(
                       value: 'reply',
                       enabled: !generating && conversation.messages.isNotEmpty,
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const Icon(Icons.reply_rounded, size: 18),
-                          const SizedBox(width: LotusSpace.sm),
+                          Icon(Icons.reply_rounded, size: 18),
+                          SizedBox(width: LotusSpace.sm),
                           Text('Responder rápido'),
                         ],
                       ),

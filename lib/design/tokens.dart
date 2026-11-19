@@ -196,7 +196,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
       userBubbleText: Color.lerp(userBubbleText, other.userBubbleText, t)!,
       assistantBubble: Color.lerp(assistantBubble, other.assistantBubble, t)!,
       glow: Gradient.lerp(glow, other.glow, t)!,
-      compact: t >= 0.5 ? other.compact : this.compact,
+      compact: t >= 0.5 ? other.compact : compact,
     );
   }
 }

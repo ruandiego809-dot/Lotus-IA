@@ -1,5 +1,6 @@
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../design/design.dart';
 
@@ -44,6 +45,11 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: 'Histórico',
           onPressed: onHistory,
           icon: const Icon(Icons.history_rounded, size: 21),
+        ),
+        IconButton(
+          tooltip: 'Chat em grupo',
+          onPressed: generating ? null : () => context.go('/group-chat'),
+          icon: const Icon(Icons.group_rounded, size: 21),
         ),
         if (hasConversation)
           PopupMenuButton<String>(

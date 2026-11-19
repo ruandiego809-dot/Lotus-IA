@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,7 @@ import '../data/chat_repository.dart';
 /// stays readable and rebuilds stay cheap.
 abstract final class ChatActions {
   static const _maxBytes = 200 * 1024;
+  static const _maxZipBytes = 5 * 1024 * 1024;
   static const _maxChars = 12000;
   static const _extensions = [
     'txt',
@@ -38,6 +40,7 @@ abstract final class ChatActions {
     'csv',
     'log',
   ];
+  static const _zipExtensions = ['zip'];
 
   static Future<void> showAttachments(
     BuildContext context,
@@ -59,15 +62,15 @@ abstract final class ChatActions {
               ),
               child: Row(
                 children: [
-                  Text('Anexar', style: ctx.text.titleMedium),
+                  Text(ctx.l10n.attachTitle, style: ctx.text.titleMedium),
                   const Spacer(),
                 ],
               ),
             ),
             _SheetAction(
               icon: Icons.description_outlined,
-              title: 'Arquivo de texto',
-              subtitle: 'Inclui o conteúdo como texto na mensagem',
+              title: ctx.l10n.attachTextFile,
+              subtitle: ctx.l10n.attachTextFileSub,
               onTap: () async {
                 Navigator.pop(ctx);
                 await attachTextFile(context, input);
@@ -75,8 +78,8 @@ abstract final class ChatActions {
             ),
             _SheetAction(
               icon: Icons.image_outlined,
-              title: 'Imagem',
-              subtitle: 'Envia a imagem para modelos com visão',
+              title: ctx.l10n.attachImage,
+              subtitle: ctx.l10n.attachImageSub,
               onTap: () async {
                 Navigator.pop(ctx);
                 if (onImagePicked != null) {
@@ -84,11 +87,98 @@ abstract final class ChatActions {
                 }
               },
             ),
+            _SheetAction(
+              icon: Icons.archive_outlined,
+              title: ctx.l10n.attachZip,
+              subtitle: ctx.l10n.attachZipSub,
+              onTap: () async {
+                Navigator.pop(ctx);
+                await attachZipFile(context, input);
+              },
+            ),
             const SizedBox(height: LotusSpace.md),
           ],
         ),
       ),
     );
+  }
+
+  static Future<void> attachZipFile(
+    BuildContext context,
+    TextEditingController input,
+  ) async {
+    try {
+      final picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: _zipExtensions,
+      );
+      if (picked == null || picked.path == null) return;
+      final zipBytes = await File(picked.path!).readAsBytes();
+      if (zipBytes.length > _maxZipBytes) {
+        if (context.mounted) {
+          LotusFeedback.show(
+            context,
+            context.l10n.zipTooLarge,
+            tone: LotusSnackTone.warning,
+          );
+        }
+        return;
+      }
+
+      final archive = ZipDecoder().decodeBytes(zipBytes);
+      int filesAdded = 0;
+      int totalChars = 0;
+
+      for (final file in archive) {
+        if (file.isFile) {
+          final name = file.name;
+          final ext = name.split('.').last.toLowerCase();
+          if (!_extensions.contains(ext)) continue;
+
+          final content = file.content as List<int>;
+          final text = String.fromCharCodes(content);
+          if (text.isEmpty) continue;
+
+          final snippet = text.length > _maxChars
+              ? '${text.substring(0, _maxChars)}\n...[truncado]'
+              : text;
+          final block = '\n\n[ZIP] $name\n```\n$snippet\n```\n';
+          final current = input.text;
+          input.text =
+              current.isEmpty ? block.trimLeft() : '$current$block';
+          input.selection = TextSelection.fromPosition(
+            TextPosition(offset: input.text.length),
+          );
+          filesAdded++;
+          totalChars += text.length;
+
+          if (filesAdded >= 20) break;
+        }
+      }
+
+      if (!context.mounted) return;
+      if (filesAdded == 0) {
+        LotusFeedback.show(
+          context,
+          context.l10n.zipEmpty,
+          tone: LotusSnackTone.warning,
+        );
+      } else {
+        LotusFeedback.show(
+          context,
+          context.l10n.zipAdded(filesAdded, totalChars),
+          tone: LotusSnackTone.success,
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        LotusFeedback.show(
+          context,
+          context.l10n.zipFailed('$error'),
+          tone: LotusSnackTone.error,
+        );
+      }
+    }
   }
 
   static Future<void> attachTextFile(

@@ -102,6 +102,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
     required this.userBubbleText,
     required this.assistantBubble,
     required this.glow,
+    this.compact = false,
   });
 
   final Color border;
@@ -114,6 +115,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
   final Color userBubbleText;
   final Color assistantBubble;
   final Gradient glow;
+  final bool compact;
 
   static const LotusPalette light = LotusPalette(
     border: LotusColors.lightBorder,
@@ -126,6 +128,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
     userBubbleText: Color(0xFF241B57),
     assistantBubble: Color(0xFFF3F2F9),
     glow: LotusColors.surfaceGlow,
+    compact: false,
   );
 
   static const LotusPalette dark = LotusPalette(
@@ -143,6 +146,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
       end: Alignment.bottomRight,
       colors: [Color(0x248C7DFF), Color(0x0012B5A0)],
     ),
+    compact: false,
   );
 
   @override
@@ -157,6 +161,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
     Color? userBubbleText,
     Color? assistantBubble,
     Gradient? glow,
+    bool? compact,
   }) {
     return LotusPalette(
       border: border ?? this.border,
@@ -169,6 +174,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
       userBubbleText: userBubbleText ?? this.userBubbleText,
       assistantBubble: assistantBubble ?? this.assistantBubble,
       glow: glow ?? this.glow,
+      compact: compact ?? this.compact,
     );
   }
 
@@ -190,6 +196,7 @@ class LotusPalette extends ThemeExtension<LotusPalette> {
       userBubbleText: Color.lerp(userBubbleText, other.userBubbleText, t)!,
       assistantBubble: Color.lerp(assistantBubble, other.assistantBubble, t)!,
       glow: Gradient.lerp(glow, other.glow, t)!,
+      compact: t >= 0.5 ? other.compact : this.compact,
     );
   }
 }

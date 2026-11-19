@@ -62,3 +62,36 @@ class ThemeModeController extends StateNotifier<ThemeMode> {
   Future<void> toggle() =>
       setMode(state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
 }
+
+/// Persists the compact mode preference (tighter spacing for small screens).
+class CompactModeController extends StateNotifier<bool> {
+  CompactModeController(this.ref) : super(false) {
+    _load();
+  }
+
+  final Ref ref;
+
+  Future<void> _load() async {
+    try {
+      final settings = await ref.read(localStoreProvider).loadSettings();
+      state = settings['compactMode'] == 'true';
+    } catch (_) {
+      state = false;
+    }
+  }
+
+  Future<void> setCompact(bool compact) async {
+    state = compact;
+    try {
+      final store = ref.read(localStoreProvider);
+      final settings = await store.loadSettings();
+      settings['compactMode'] = compact.toString();
+      await store.saveSettings(settings);
+    } catch (_) {}
+  }
+}
+
+final compactModeProvider =
+    StateNotifierProvider<CompactModeController, bool>((ref) {
+  return CompactModeController(ref);
+});

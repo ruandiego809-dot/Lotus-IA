@@ -7,15 +7,18 @@ import 'tokens.dart';
 /// theme (directly or through the design-system widgets), so visual changes
 /// happen in one place.
 abstract final class LotusTheme {
-  static final ThemeData light = _build(Brightness.light);
-  static final ThemeData dark = _build(Brightness.dark);
+  static ThemeData light({bool compact = false}) =>
+      _build(Brightness.light, compact: compact);
+  static ThemeData dark({bool compact = false}) =>
+      _build(Brightness.dark, compact: compact);
 
-  static ThemeData of(Brightness brightness) =>
-      brightness == Brightness.dark ? dark : light;
+  static ThemeData of(Brightness brightness, {bool compact = false}) =>
+      brightness == Brightness.dark ? dark(compact: compact) : light(compact: compact);
 
-  static ThemeData _build(Brightness brightness) {
+  static ThemeData _build(Brightness brightness, {bool compact = false}) {
     final dark = brightness == Brightness.dark;
-    final palette = dark ? LotusPalette.dark : LotusPalette.light;
+    final palette = (dark ? LotusPalette.dark : LotusPalette.light)
+        .copyWith(compact: compact);
     final scheme =
         ColorScheme.fromSeed(
           seedColor: LotusColors.primary,
@@ -64,7 +67,9 @@ abstract final class LotusTheme {
       textTheme: textTheme,
       primaryColor: scheme.primary,
       splashFactory: InkSparkle.splashFactory,
-      visualDensity: VisualDensity.standard,
+      visualDensity: palette.compact
+          ? VisualDensity.compact
+          : VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

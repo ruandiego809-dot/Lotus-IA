@@ -126,6 +126,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     final providers = ref.watch(providerControllerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final compactMode = ref.watch(compactModeProvider);
     return LotusScaffold(
       appBar: const LotusAppBar(
         title: 'Ajustes',
@@ -161,6 +162,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               mode: themeMode,
               onChanged: (mode) =>
                   ref.read(themeModeProvider.notifier).setMode(mode),
+            ),
+            const SizedBox(height: LotusSpace.md),
+            ListTile(
+              leading: const Icon(Icons.keyboard_rounded),
+              title: const Text('Modo compacto'),
+              subtitle: const Text(
+                'Espaçamento mais apertado para telas pequenas',
+              ),
+              trailing: Switch(
+                value: compactMode,
+                onChanged: (value) =>
+                    ref.read(compactModeProvider.notifier).setCompact(value),
+              ),
             ),
             const SizedBox(height: LotusSpace.xl),
             const LotusSectionHeader(

@@ -211,7 +211,14 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
     return LotusScaffold(
       appBar: _ChatAppBarSlot(
         onNew: _newConversation,
-        onHistory: () => showChatHistory(context),
+        onHistory: () => showChatHistory(
+          context,
+          onSuggestion: (text) {
+            _input.text = text;
+            _input.selection = TextSelection.collapsed(offset: text.length);
+            _focus.requestFocus();
+          },
+        ),
         onAction: _handleConversationAction,
       ),
       body: Column(

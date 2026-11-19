@@ -9,15 +9,17 @@ import '../../../../core/utils/date_labels.dart';
 import '../../../../design/design.dart';
 import '../../data/chat_repository.dart';
 
-Future<void> showChatHistory(BuildContext context) {
+Future<void> showChatHistory(BuildContext context, {ValueChanged<String>? onSuggestion}) {
   return showLotusSheet<void>(
     context,
-    builder: (_) => const ChatHistorySheet(),
+    builder: (_) => ChatHistorySheet(onSuggestion: onSuggestion),
   );
 }
 
 class ChatHistorySheet extends ConsumerStatefulWidget {
-  const ChatHistorySheet({super.key});
+  const ChatHistorySheet({super.key, this.onSuggestion});
+
+  final ValueChanged<String>? onSuggestion;
 
   @override
   ConsumerState<ChatHistorySheet> createState() => _ChatHistorySheetState();
@@ -173,6 +175,7 @@ class _ChatHistorySheetState extends ConsumerState<ChatHistorySheet> {
                             conversation: conversation,
                             selected: conversation.id == state.activeId,
                             generating: state.generating,
+                            onSuggestion: widget.onSuggestion,
                           ),
                         ],
                       );
@@ -190,11 +193,13 @@ class _HistoryRow extends ConsumerWidget {
     required this.conversation,
     required this.selected,
     required this.generating,
+    this.onSuggestion,
   });
 
   final Conversation conversation;
   final bool selected;
   final bool generating;
+  final ValueChanged<String>? onSuggestion;
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     if (generating) return;
@@ -286,6 +291,10 @@ class _HistoryRow extends ConsumerWidget {
                           .read(chatControllerProvider.notifier)
                           .archive(conversation.id, !conversation.archived);
                     }
+                    if (value == 'reply') {
+                      onSuggestion?.call(conversation.messages.last.content);
+                      Navigator.pop(context);
+                    }
                   },
                   itemBuilder: (_) => [
                     PopupMenuItem(
@@ -305,6 +314,17 @@ class _HistoryRow extends ConsumerWidget {
                                 ? 'Desarquivar'
                                 : 'Arquivar',
                           ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'reply',
+                      enabled: !generating && conversation.messages.isNotEmpty,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.reply_rounded, size: 18),
+                          const SizedBox(width: LotusSpace.sm),
+                          Text('Responder rápido'),
                         ],
                       ),
                     ),

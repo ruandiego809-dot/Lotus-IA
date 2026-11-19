@@ -15,11 +15,12 @@ class LotusApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final compactMode = ref.watch(compactModeProvider);
     return MaterialApp.router(
       title: 'Lótus AI',
       debugShowCheckedModeBanner: false,
-      theme: LotusTheme.light,
-      darkTheme: LotusTheme.dark,
+      theme: LotusTheme.light(compact: compactMode),
+      darkTheme: LotusTheme.dark(compact: compactMode),
       themeMode: themeMode,
       localizationsDelegates: const [
         AppLocalizations.delegate,

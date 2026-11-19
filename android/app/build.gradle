@@ -52,5 +52,4 @@ android {
 
 flutter {
     source = "../.."
-    enableImpeller = true
 }

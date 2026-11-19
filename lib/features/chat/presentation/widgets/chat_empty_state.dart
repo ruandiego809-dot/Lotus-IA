@@ -35,6 +35,16 @@ class ChatEmptyState extends StatelessWidget {
       'Traduzir e melhorar',
       'Traduza o texto a seguir e melhore a clareza.',
     ),
+    (
+      Icons.terminal_rounded,
+      'Comando do terminal',
+      'Gere um comando para o terminal Linux.',
+    ),
+    (
+      Icons.article_outlined,
+      'Resumir texto',
+      'Resuma este artigo mantendo os pontos principais.',
+    ),
   ];
 
   @override

@@ -1,7 +1,9 @@
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../tokens.dart';
+import 'lotus_feedback.dart';
 
 /// Rounded, bordered surface used across every screen.
 class LotusCard extends StatelessWidget {
@@ -54,6 +56,69 @@ class LotusCard extends StatelessWidget {
 
 /// Compact label with optional leading icon.
 enum LotusPillTone { neutral, primary, success, warning, danger }
+
+/// Code block with a one-tap copy button for Markdown content.
+class LotusCodeBlock extends StatelessWidget {
+  const LotusCodeBlock({
+    super.key,
+    required this.code,
+    this.language,
+  });
+
+  final String code;
+  final String? language;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final scheme = context.scheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (language != null && language!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(LotusSpace.md, LotusSpace.sm, LotusSpace.md, 0),
+            child: Text(
+              language!,
+              style: context.text.labelSmall?.copyWith(
+                color: palette.muted,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        GestureDetector(
+          onTap: () async {
+            await Clipboard.setData(ClipboardData(text: code));
+            if (context.mounted) {
+              LotusFeedback.show(
+                context,
+                'Código copiado',
+                tone: LotusSnackTone.success,
+              );
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(LotusSpace.md),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(LotusRadius.sm),
+              border: Border.all(color: palette.border),
+            ),
+            child: SelectableText(
+              code,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12.5,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class LotusPill extends StatelessWidget {
   const LotusPill(
